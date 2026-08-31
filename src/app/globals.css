@@ -706,6 +706,184 @@ textarea:focus {
   color: var(--muted);
   font-size: 0.75rem;
 }
+.manager-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 34px;
+  border: 1px solid #243550;
+  border-radius: 15px;
+  background: linear-gradient(145deg, #0e1522, #090d15);
+  box-shadow: inset 0 1px #ffffff08;
+  padding: 24px;
+}
+.manager-panel h2 {
+  margin: 5px 0 9px;
+  font-size: 1.35rem;
+  letter-spacing: -0.03em;
+}
+.manager-panel p:not(.eyebrow) {
+  max-width: 680px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.live-results-board {
+  margin-top: 34px;
+}
+.round-result-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(285px, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+.result-round {
+  min-width: 0;
+}
+.result-round > header {
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+}
+.result-round > header span {
+  color: #4d9aff;
+  font-family: var(--font-geist-mono);
+  font-size: 0.62rem;
+  font-weight: 820;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+.result-round h3 {
+  margin: 5px 0 0;
+  font-size: 1.05rem;
+}
+.result-match-list {
+  display: grid;
+  gap: 12px;
+}
+.result-match-card {
+  overflow: hidden;
+  border: 1px solid #27364f;
+  border-radius: 11px;
+  background: linear-gradient(145deg, #101725, #090e17);
+  box-shadow:
+    0 14px 32px #0005,
+    inset 0 1px #ffffff08;
+}
+.result-match-card > header {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #1d283b;
+  padding: 0 12px;
+  color: #697993;
+  font-family: var(--font-geist-mono);
+  font-size: 0.62rem;
+}
+.result-match-card > header strong {
+  color: #8fa3c0;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+}
+.result-match-card.is-completed {
+  border-color: #285c75;
+}
+.result-match-card.is-ready {
+  border-color: #31527f;
+}
+.result-players {
+  display: grid;
+  gap: 1px;
+  background: #1b2638;
+}
+.result-player {
+  display: grid;
+  min-height: 45px;
+  grid-template-columns: 28px 32px minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+  background: #090f19;
+  padding: 8px 12px;
+  color: #9ba8bc;
+}
+.result-player.is-winner {
+  background: linear-gradient(90deg, #122c28, #0d1722);
+  color: #ecfff7;
+}
+.result-player.is-empty {
+  color: #5f6b7d;
+}
+.result-player strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.result-player b {
+  min-width: 22px;
+  color: #e4efff;
+  font-family: var(--font-geist-mono);
+  text-align: right;
+}
+.match-winner {
+  margin: 0;
+  border-top: 1px solid #1d283b;
+  padding: 10px 12px;
+  color: #72ddb0;
+  font-size: 0.76rem;
+}
+.match-result-form {
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid #1d283b;
+  padding: 12px;
+}
+.score-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.score-grid label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+.score-grid label span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.score-grid input {
+  min-height: 38px;
+  padding: 9px 10px;
+}
+.match-result-form .button {
+  width: 100%;
+  min-height: 38px;
+}
+.match-result-form .button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+.result-message {
+  color: #c5d5e9;
+  line-height: 1.45;
+}
+.result-message.is-error {
+  color: #ff9db0;
+}
+.result-message.is-success {
+  color: #8ff0c4;
+}
 
 /* Tournament demo */
 .demo-page {
@@ -1345,6 +1523,13 @@ textarea:focus {
   .detail-grid {
     grid-template-columns: 1fr;
   }
+  .manager-panel {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .status-actions {
+    justify-content: flex-start;
+  }
   .arena-status {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -1395,6 +1580,15 @@ textarea:focus {
   .round-list div {
     align-items: flex-start;
     flex-direction: column;
+  }
+  .score-grid {
+    grid-template-columns: 1fr;
+  }
+  .result-player {
+    grid-template-columns: 28px 32px minmax(0, 1fr) auto;
+  }
+  .result-player .winner-mark {
+    display: none;
   }
   .footer,
   .tournament-hero,

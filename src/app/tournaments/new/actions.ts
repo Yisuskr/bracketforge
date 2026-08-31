@@ -296,15 +296,20 @@ export async function createTournament(
     const { data: insertedMatches, error: matchesError } = await supabase
       .from("matches")
       .insert(
-        bracket.matches.map((match, index) => ({
-          tournament_id: tournament.id,
-          round_id: roundIdByNumber.get(match.round),
-          match_number: index + 1,
-          participant_one_id: participantIdForSlot(match.participantOne),
-          participant_two_id: participantIdForSlot(match.participantTwo),
-          status: "pending",
-          best_of: values.bestOf,
-        })),
+        bracket.matches.map((match, index) => {
+          const participantOneId = participantIdForSlot(match.participantOne);
+          const participantTwoId = participantIdForSlot(match.participantTwo);
+
+          return {
+            tournament_id: tournament.id,
+            round_id: roundIdByNumber.get(match.round),
+            match_number: index + 1,
+            participant_one_id: participantOneId,
+            participant_two_id: participantTwoId,
+            status: participantOneId && participantTwoId ? "ready" : "pending",
+            best_of: values.bestOf,
+          };
+        }),
       )
       .select("id, match_number")
       .returns<InsertedMatch[]>();
@@ -341,6 +346,105 @@ export async function createTournament(
       if (nextMatchError) {
         await rollbackTournament(supabase, tournamentId);
         return failure(nextMatchError.message);
+      }
+    }
+
+    const domainMatchById = new Map(
+      bracket.matches.map((match) => [match.id, match]),
+    );
+
+    for (const match of bracket.matches) {
+      const participantOneId = participantIdForSlot(match.participantOne);
+      const participantTwoId = participantIdForSlot(match.participantTwo);
+      const winnerId =
+        participantOneId && !participantTwoId
+          ? participantOneId
+          : participantTwoId && !participantOneId
+            ? participantTwoId
+            : null;
+      const currentId = matchIdByDomainId.get(match.id);
+
+      if (!currentId || !winnerId) continue;
+
+      const { error: byeError } = await supabase
+        .from("matches")
+        .update({
+          winner_id: winnerId,
+          loser_id: null,
+          participant_one_score: null,
+          participant_two_score: null,
+          status: "completed",
+        })
+        .eq("id", currentId);
+
+      if (byeError) {
+        await rollbackTournament(supabase, tournamentId);
+        return failure(byeError.message);
+      }
+
+      if (!match.nextMatchId) continue;
+
+      const nextDomainMatch = domainMatchById.get(match.nextMatchId);
+      const nextId = matchIdByDomainId.get(match.nextMatchId);
+      const targetField =
+        nextDomainMatch?.participantOne.sourceMatchId === match.id
+          ? "participant_one_id"
+          : nextDomainMatch?.participantTwo.sourceMatchId === match.id
+            ? "participant_two_id"
+            : null;
+
+      if (!nextId || !targetField) continue;
+
+      const { error: advanceByeError } = await supabase
+        .from("matches")
+        .update({ [targetField]: winnerId })
+        .eq("id", nextId);
+
+      if (advanceByeError) {
+        await rollbackTournament(supabase, tournamentId);
+        return failure(advanceByeError.message);
+      }
+    }
+
+    const { data: generatedMatches, error: generatedMatchesError } =
+      await supabase
+        .from("matches")
+        .select("id, participant_one_id, participant_two_id, winner_id, status")
+        .eq("tournament_id", tournament.id)
+        .returns<
+          {
+            id: string;
+            participant_one_id: string | null;
+            participant_two_id: string | null;
+            winner_id: string | null;
+            status: string;
+          }[]
+        >();
+
+    if (generatedMatchesError) {
+      await rollbackTournament(supabase, tournamentId);
+      return failure(generatedMatchesError.message);
+    }
+
+    const readyMatchIds = (generatedMatches ?? [])
+      .filter(
+        (match) =>
+          match.status !== "completed" &&
+          match.participant_one_id &&
+          match.participant_two_id &&
+          !match.winner_id,
+      )
+      .map((match) => match.id);
+
+    if (readyMatchIds.length) {
+      const { error: readyMatchesError } = await supabase
+        .from("matches")
+        .update({ status: "ready" })
+        .in("id", readyMatchIds);
+
+      if (readyMatchesError) {
+        await rollbackTournament(supabase, tournamentId);
+        return failure(readyMatchesError.message);
       }
     }
 
