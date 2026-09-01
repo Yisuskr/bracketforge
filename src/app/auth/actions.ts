@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-type AuthField = "displayName" | "email" | "password";
+type AuthField = "displayName" | "email" | "password" | "confirmPassword";
 
 export type AuthState = {
   status: "idle" | "error" | "success";
@@ -37,6 +37,20 @@ const signUpSchema = signInSchema.extend({
     .max(80, "El nombre público no puede pasar de 80 caracteres."),
 });
 
+const resetPasswordSchema = z.object({
+  email: emailSchema,
+});
+
+const updatePasswordSchema = z
+  .object({
+    password: passwordSchema,
+    confirmPassword: passwordSchema,
+  })
+  .refine((value) => value.password === value.confirmPassword, {
+    message: "Las contraseñas no coinciden.",
+    path: ["confirmPassword"],
+  });
+
 function failure(
   message: string,
   fieldErrors?: AuthState["fieldErrors"],
@@ -45,7 +59,10 @@ function failure(
 }
 
 function siteUrl() {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  return (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(
+    /\/$/,
+    "",
+  );
 }
 
 export async function signIn(
@@ -129,6 +146,95 @@ export async function signUp(
 
   revalidatePath("/", "layout");
   redirect("/dashboard");
+}
+
+export async function requestPasswordReset(
+  _previousState: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
+  const validated = resetPasswordSchema.safeParse({
+    email: formData.get("email"),
+  });
+
+  if (!validated.success) {
+    return failure(
+      "Escribe el email de tu cuenta.",
+      validated.error.flatten().fieldErrors,
+    );
+  }
+
+  let supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+  try {
+    supabase = await createSupabaseServerClient();
+  } catch {
+    return failure("Conecta Supabase en .env.local antes de recuperar acceso.");
+  }
+
+  const { error } = await supabase.auth.resetPasswordForEmail(
+    validated.data.email,
+    {
+      redirectTo: `${siteUrl()}/auth/callback?next=/auth/update-password`,
+    },
+  );
+
+  if (error) {
+    return failure(error.message);
+  }
+
+  return {
+    status: "success",
+    message: "Te enviamos un enlace para cambiar la contraseña.",
+  };
+}
+
+export async function updatePassword(
+  _previousState: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
+  const validated = updatePasswordSchema.safeParse({
+    password: formData.get("password"),
+    confirmPassword: formData.get("confirmPassword"),
+  });
+
+  if (!validated.success) {
+    return failure(
+      "Revisa la nueva contraseña.",
+      validated.error.flatten().fieldErrors,
+    );
+  }
+
+  let supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+  try {
+    supabase = await createSupabaseServerClient();
+  } catch {
+    return failure(
+      "Conecta Supabase en .env.local antes de cambiar contraseña.",
+    );
+  }
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return failure("Abre esta pantalla desde el enlace de recuperación.");
+  }
+
+  const { error } = await supabase.auth.updateUser({
+    password: validated.data.password,
+  });
+
+  if (error) {
+    return failure(error.message);
+  }
+
+  revalidatePath("/", "layout");
+
+  return {
+    status: "success",
+    message: "Contraseña actualizada. Ya puedes seguir usando tu cuenta.",
+  };
 }
 
 export async function signOut() {

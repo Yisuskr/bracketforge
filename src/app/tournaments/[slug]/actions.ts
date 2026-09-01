@@ -273,6 +273,10 @@ export async function recordMatchResult(
     return failure("Solo el organizador puede guardar resultados.");
   }
 
+  if (tournament.status !== "active") {
+    return failure("Inicia el torneo antes de guardar resultados.");
+  }
+
   if (!currentMatch.participant_one_id || !currentMatch.participant_two_id) {
     return failure("Este partido todavia no tiene dos participantes.");
   }

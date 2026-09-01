@@ -2,7 +2,7 @@
 
 > Crea, gestiona y comparte torneos de forma rápida, visual y profesional.
 
-Base funcional de una plataforma de torneos construida con Next.js 16, React 19, TypeScript estricto, Tailwind CSS 4 y Supabase. Incluye landing responsive, panel, asistente inicial, demo pública, esquema PostgreSQL con RLS y un motor puro y probado de eliminación simple.
+Base funcional de una plataforma de torneos construida con Next.js 16, React 19, TypeScript estricto, Tailwind CSS 4 y Supabase. Incluye landing responsive, panel, asistente inicial, edición de drafts, demo pública, esquema PostgreSQL con RLS y un motor puro y probado de eliminación simple.
 
 ## Inicio local
 
@@ -22,11 +22,11 @@ El servidor local usa Webpack en desarrollo porque Turbopack 16.2.10 puede provo
 
 1. Crea un proyecto gratuito.
 2. Copia URL y publishable key a `.env.local`.
-3. Ejecuta `supabase/migrations/202607170001_initial_schema.sql` desde SQL Editor o mediante Supabase CLI.
+3. Ejecuta las migraciones de `supabase/migrations` en orden desde SQL Editor o mediante Supabase CLI.
 4. Configura `http://localhost:3000/**` como URL de redirección local.
 5. Nunca expongas la service-role key en el navegador.
 
-La migración activa RLS: los torneos públicos son legibles y las mutaciones quedan reservadas al propietario. Los torneos no listados necesitarán enlaces compartidos con token hash en una fase posterior; no se presentan todavía como funcionalidad terminada.
+Las migraciones activan RLS: los torneos públicos y no listados son legibles por enlace, los privados quedan reservados al propietario y las mutaciones quedan protegidas por dueño.
 
 ## Calidad
 
@@ -57,7 +57,7 @@ flowchart LR
 
 ## Decisiones y límites actuales
 
-El motor de bracket genera conexiones y byes como slots vacíos, conservando toda la lógica fuera de React. La propagación transaccional, doble eliminación, Realtime, exportación, autenticación completa y colaboración pertenecen a los siguientes bloques: no están simuladas ni anunciadas como terminadas. Los datos del dashboard son demostrativos y están declarados dentro de la ruta; deben sustituirse por consultas Supabase cuando se complete el flujo autenticado.
+El motor de bracket genera conexiones y byes como slots vacíos, conservando toda la lógica fuera de React. La creación, edición de drafts, panel, resultados y avance de eliminación simple usan Supabase. Doble eliminación, Realtime, exportación y colaboración pertenecen a los siguientes bloques; no están simulados ni anunciados como terminados.
 
 ## Despliegue
 

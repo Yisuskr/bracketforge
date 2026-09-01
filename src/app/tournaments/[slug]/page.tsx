@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ShareButton } from "@/components/share-button";
 import { SiteHeader } from "@/components/site-header";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/session";
@@ -104,21 +105,27 @@ function playerLine(
   if (!participant) {
     return (
       <div className="result-player is-empty">
-        <span className="seed">-</span>
-        <span className="avatar">?</span>
-        <strong>Por decidir</strong>
-        <b>{scoreText(score)}</b>
+        <span className="result-player-seed">-</span>
+        <span className="result-player-avatar">?</span>
+        <span className="result-player-main">
+          <strong>Por decidir</strong>
+        </span>
+        <b className="result-player-score">{scoreText(score)}</b>
       </div>
     );
   }
 
   return (
     <div className={`result-player${isWinner ? "is-winner" : ""}`}>
-      <span className="seed">{participant.seed}</span>
-      <span className="avatar">{playerInitials(participant.display_name)}</span>
-      <strong>{participant.display_name}</strong>
-      {isWinner ? <span className="winner-mark">Gana</span> : null}
-      <b>{scoreText(score)}</b>
+      <span className="result-player-seed">{participant.seed}</span>
+      <span className="result-player-avatar">
+        {playerInitials(participant.display_name)}
+      </span>
+      <span className="result-player-main">
+        <strong>{participant.display_name}</strong>
+        {isWinner ? <span className="result-player-badge">Gana</span> : null}
+      </span>
+      <b className="result-player-score">{scoreText(score)}</b>
     </div>
   );
 }
@@ -200,12 +207,8 @@ export default async function TournamentPage({
   const champion = finalMatch?.winner_id
     ? participantsById.get(finalMatch.winner_id)
     : null;
-  const tournamentLocked = [
-    "paused",
-    "completed",
-    "archived",
-    "cancelled",
-  ].includes(tournament.status);
+  const canRecordResults = tournament.status === "active";
+  const canShare = tournament.visibility !== "private";
 
   return (
     <>
@@ -223,6 +226,14 @@ export default async function TournamentPage({
             </p>
           </div>
           <div className="detail-actions">
+            {canShare ? (
+              <ShareButton title={`${tournament.name} · BracketForge`} />
+            ) : null}
+            {isOwner && tournament.status === "draft" ? (
+              <Link className="button ghost" href={`/tournaments/${slug}/edit`}>
+                Editar draft
+              </Link>
+            ) : null}
             <span className="pill">
               {labelFor(tournamentStatusLabels, tournament.status)}
             </span>
@@ -354,13 +365,11 @@ export default async function TournamentPage({
                     const hasBothParticipants = Boolean(
                       participantOne && participantTwo,
                     );
-                    const disabledReason = tournamentLocked
-                      ? "El torneo no acepta resultados en este estado."
-                      : !hasBothParticipants
-                        ? "Esperando participantes."
-                        : nextAlreadyStarted
-                          ? "El siguiente partido ya empezo."
-                          : undefined;
+                    const disabledReason = !hasBothParticipants
+                      ? "Esperando participantes."
+                      : nextAlreadyStarted
+                        ? "El siguiente partido ya empezo."
+                        : undefined;
 
                     return (
                       <article
@@ -390,7 +399,7 @@ export default async function TournamentPage({
                             Ganador: <strong>{winner.display_name}</strong>
                           </p>
                         ) : null}
-                        {isOwner ? (
+                        {isOwner && canRecordResults ? (
                           <MatchResultForm
                             bestOf={match.best_of}
                             disabled={Boolean(disabledReason)}

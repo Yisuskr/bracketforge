@@ -111,9 +111,16 @@ export default async function Dashboard() {
                   </div>
                   <footer>
                     <small>{progress}% completado</small>
-                    <Link href={`/tournaments/${tournament.slug}`}>
-                      Abrir →
-                    </Link>
+                    <span className="card-links">
+                      {tournament.status === "draft" ? (
+                        <Link href={`/tournaments/${tournament.slug}/edit`}>
+                          Editar
+                        </Link>
+                      ) : null}
+                      <Link href={`/tournaments/${tournament.slug}`}>
+                        Abrir →
+                      </Link>
+                    </span>
                   </footer>
                 </article>
               );

@@ -1,7 +1,12 @@
 "use client";
 
 import { useActionState } from "react";
-import { signIn, signUp, type AuthState } from "@/app/auth/actions";
+import {
+  requestPasswordReset,
+  signIn,
+  signUp,
+  type AuthState,
+} from "@/app/auth/actions";
 
 const initialState: AuthState = {
   status: "idle",
@@ -20,6 +25,10 @@ export function AuthForm() {
   );
   const [signUpState, signUpAction, signUpPending] = useActionState(
     signUp,
+    initialState,
+  );
+  const [resetState, resetAction, resetPending] = useActionState(
+    requestPasswordReset,
     initialState,
   );
 
@@ -51,6 +60,26 @@ export function AuthForm() {
         {signInState.message ? (
           <div className={`form-state is-${signInState.status}`}>
             <p>{signInState.message}</p>
+          </div>
+        ) : null}
+      </form>
+
+      <form className="auth-panel compact" action={resetAction}>
+        <div>
+          <p className="eyebrow">Recuperar acceso</p>
+          <h2>Cambia tu contraseña</h2>
+        </div>
+        <label>
+          Email
+          <input name="email" type="email" autoComplete="email" required />
+          <FieldError messages={resetState.fieldErrors?.email} />
+        </label>
+        <button className="button ghost" disabled={resetPending}>
+          {resetPending ? "Enviando..." : "Enviar enlace"}
+        </button>
+        {resetState.message ? (
+          <div className={`form-state is-${resetState.status}`}>
+            <p>{resetState.message}</p>
           </div>
         ) : null}
       </form>

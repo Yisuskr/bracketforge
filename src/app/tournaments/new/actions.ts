@@ -3,10 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import {
-  createSingleEliminationBracket,
-  seededPositions,
-  type Slot,
-} from "@/domain/bracket/single-elimination";
+  bracketSizeForParticipantCount,
+  duplicateNames,
+  insertSingleEliminationBracket,
+  parseParticipants,
+  parseScheduledAt,
+  uniqueSlug,
+} from "@/app/tournaments/_lib/bracket-storage";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type FieldName =
@@ -49,60 +52,6 @@ const createTournamentSchema = z.object({
 });
 
 type InsertedTournament = { id: string; slug: string };
-type InsertedParticipant = { id: string; seed: number };
-type InsertedRound = { id: string; round_number: number };
-type InsertedMatch = { id: string; match_number: number };
-
-function parseParticipants(input: string) {
-  return input
-    .split(/[\n,]/)
-    .map((name) => name.trim())
-    .filter(Boolean);
-}
-
-function duplicateNames(names: string[]) {
-  const seen = new Set<string>();
-  const duplicates = new Set<string>();
-
-  names.forEach((name) => {
-    const normalized = name.toLocaleLowerCase("es");
-    if (seen.has(normalized)) duplicates.add(name);
-    seen.add(normalized);
-  });
-
-  return [...duplicates];
-}
-
-function slugify(input: string) {
-  const base = input
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 64);
-
-  return base || "torneo";
-}
-
-function uniqueSlug(name: string) {
-  return `${slugify(name)}-${crypto.randomUUID().slice(0, 8)}`;
-}
-
-function parseScheduledAt(value?: string) {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return undefined;
-  return date.toISOString();
-}
-
-function roundName(round: number, totalRounds: number) {
-  const remaining = totalRounds - round;
-  if (remaining === 0) return "Gran final";
-  if (remaining === 1) return "Semifinales";
-  if (remaining === 2) return "Cuartos de final";
-  return `Ronda ${round}`;
-}
 
 function failure(
   message: string,
@@ -186,16 +135,7 @@ export async function createTournament(
     return failure("Inicia sesión para guardar torneos reales en Supabase.");
   }
 
-  const bracketEntrants = participants.map((name, index) => ({
-    id: `entrant-${index + 1}`,
-    name,
-    seed: index + 1,
-  }));
-  const bracket = createSingleEliminationBracket(bracketEntrants);
-  const seededSlots = seededPositions(bracket.size);
-  const positionBySeed = new Map(
-    seededSlots.map((seed, index) => [seed, index + 1]),
-  );
+  const bracketSize = bracketSizeForParticipantCount(participants.length);
   const slug = uniqueSlug(values.name);
   let tournamentId: string | null = null;
 
@@ -211,7 +151,7 @@ export async function createTournament(
         status: "draft",
         visibility: values.visibility,
         scheduled_at: scheduledAt,
-        max_participants: bracket.size,
+        max_participants: bracketSize,
         best_of: values.bestOf,
         random_seed: Date.now(),
       })
@@ -227,226 +167,12 @@ export async function createTournament(
 
     tournamentId = tournament.id;
 
-    const { data: insertedParticipants, error: participantsError } =
-      await supabase
-        .from("participants")
-        .insert(
-          participants.map((displayName, index) => {
-            const seed = index + 1;
-            return {
-              tournament_id: tournament.id,
-              display_name: displayName,
-              seed,
-              initial_position: positionBySeed.get(seed) ?? seed,
-            };
-          }),
-        )
-        .select("id, seed")
-        .returns<InsertedParticipant[]>();
-
-    if (participantsError || !insertedParticipants) {
-      await rollbackTournament(supabase, tournamentId);
-      return failure(
-        participantsError?.message ?? "No se pudieron crear los participantes.",
-      );
-    }
-
-    const participantIdBySeed = new Map(
-      insertedParticipants.map((participant) => [
-        participant.seed,
-        participant.id,
-      ]),
-    );
-    const seedByEntrantId = new Map(
-      bracketEntrants.map((entrant) => [entrant.id, entrant.seed]),
-    );
-
-    const { data: insertedRounds, error: roundsError } = await supabase
-      .from("rounds")
-      .insert(
-        Array.from({ length: bracket.rounds }, (_, index) => {
-          const roundNumber = index + 1;
-          return {
-            tournament_id: tournament.id,
-            round_number: roundNumber,
-            name: roundName(roundNumber, bracket.rounds),
-            sequence: roundNumber,
-          };
-        }),
-      )
-      .select("id, round_number")
-      .returns<InsertedRound[]>();
-
-    if (roundsError || !insertedRounds) {
-      await rollbackTournament(supabase, tournamentId);
-      return failure(
-        roundsError?.message ?? "No se pudieron crear las rondas.",
-      );
-    }
-
-    const roundIdByNumber = new Map(
-      insertedRounds.map((round) => [round.round_number, round.id]),
-    );
-    const participantIdForSlot = (slot: Slot) => {
-      if (!slot.entrantId) return null;
-      const seed = seedByEntrantId.get(slot.entrantId);
-      return seed ? (participantIdBySeed.get(seed) ?? null) : null;
-    };
-
-    const { data: insertedMatches, error: matchesError } = await supabase
-      .from("matches")
-      .insert(
-        bracket.matches.map((match, index) => {
-          const participantOneId = participantIdForSlot(match.participantOne);
-          const participantTwoId = participantIdForSlot(match.participantTwo);
-
-          return {
-            tournament_id: tournament.id,
-            round_id: roundIdByNumber.get(match.round),
-            match_number: index + 1,
-            participant_one_id: participantOneId,
-            participant_two_id: participantTwoId,
-            status: participantOneId && participantTwoId ? "ready" : "pending",
-            best_of: values.bestOf,
-          };
-        }),
-      )
-      .select("id, match_number")
-      .returns<InsertedMatch[]>();
-
-    if (matchesError || !insertedMatches) {
-      await rollbackTournament(supabase, tournamentId);
-      return failure(
-        matchesError?.message ?? "No se pudieron crear los partidos.",
-      );
-    }
-
-    const matchIdByDomainId = new Map(
-      bracket.matches.map((match, index) => {
-        const inserted = insertedMatches.find(
-          (row) => row.match_number === index + 1,
-        );
-        return [match.id, inserted?.id] as const;
-      }),
-    );
-
-    for (const match of bracket.matches) {
-      const currentId = matchIdByDomainId.get(match.id);
-      const nextId = match.nextMatchId
-        ? matchIdByDomainId.get(match.nextMatchId)
-        : null;
-
-      if (!currentId || !nextId) continue;
-
-      const { error: nextMatchError } = await supabase
-        .from("matches")
-        .update({ next_match_for_winner_id: nextId })
-        .eq("id", currentId);
-
-      if (nextMatchError) {
-        await rollbackTournament(supabase, tournamentId);
-        return failure(nextMatchError.message);
-      }
-    }
-
-    const domainMatchById = new Map(
-      bracket.matches.map((match) => [match.id, match]),
-    );
-
-    for (const match of bracket.matches) {
-      const participantOneId = participantIdForSlot(match.participantOne);
-      const participantTwoId = participantIdForSlot(match.participantTwo);
-      const winnerId =
-        participantOneId && !participantTwoId
-          ? participantOneId
-          : participantTwoId && !participantOneId
-            ? participantTwoId
-            : null;
-      const currentId = matchIdByDomainId.get(match.id);
-
-      if (!currentId || !winnerId) continue;
-
-      const { error: byeError } = await supabase
-        .from("matches")
-        .update({
-          winner_id: winnerId,
-          loser_id: null,
-          participant_one_score: null,
-          participant_two_score: null,
-          status: "completed",
-        })
-        .eq("id", currentId);
-
-      if (byeError) {
-        await rollbackTournament(supabase, tournamentId);
-        return failure(byeError.message);
-      }
-
-      if (!match.nextMatchId) continue;
-
-      const nextDomainMatch = domainMatchById.get(match.nextMatchId);
-      const nextId = matchIdByDomainId.get(match.nextMatchId);
-      const targetField =
-        nextDomainMatch?.participantOne.sourceMatchId === match.id
-          ? "participant_one_id"
-          : nextDomainMatch?.participantTwo.sourceMatchId === match.id
-            ? "participant_two_id"
-            : null;
-
-      if (!nextId || !targetField) continue;
-
-      const { error: advanceByeError } = await supabase
-        .from("matches")
-        .update({ [targetField]: winnerId })
-        .eq("id", nextId);
-
-      if (advanceByeError) {
-        await rollbackTournament(supabase, tournamentId);
-        return failure(advanceByeError.message);
-      }
-    }
-
-    const { data: generatedMatches, error: generatedMatchesError } =
-      await supabase
-        .from("matches")
-        .select("id, participant_one_id, participant_two_id, winner_id, status")
-        .eq("tournament_id", tournament.id)
-        .returns<
-          {
-            id: string;
-            participant_one_id: string | null;
-            participant_two_id: string | null;
-            winner_id: string | null;
-            status: string;
-          }[]
-        >();
-
-    if (generatedMatchesError) {
-      await rollbackTournament(supabase, tournamentId);
-      return failure(generatedMatchesError.message);
-    }
-
-    const readyMatchIds = (generatedMatches ?? [])
-      .filter(
-        (match) =>
-          match.status !== "completed" &&
-          match.participant_one_id &&
-          match.participant_two_id &&
-          !match.winner_id,
-      )
-      .map((match) => match.id);
-
-    if (readyMatchIds.length) {
-      const { error: readyMatchesError } = await supabase
-        .from("matches")
-        .update({ status: "ready" })
-        .in("id", readyMatchIds);
-
-      if (readyMatchesError) {
-        await rollbackTournament(supabase, tournamentId);
-        return failure(readyMatchesError.message);
-      }
-    }
+    await insertSingleEliminationBracket({
+      bestOf: values.bestOf,
+      participants,
+      supabase,
+      tournamentId: tournament.id,
+    });
 
     revalidatePath("/dashboard");
     revalidatePath(`/tournaments/${tournament.slug}`);
@@ -456,8 +182,12 @@ export async function createTournament(
       message: "Torneo guardado. Ya existe como borrador real en Supabase.",
       slug: tournament.slug,
     };
-  } catch {
+  } catch (error) {
     await rollbackTournament(supabase, tournamentId);
-    return failure("No se pudo guardar el torneo. Inténtalo de nuevo.");
+    return failure(
+      error instanceof Error
+        ? error.message
+        : "No se pudo guardar el torneo. Inténtalo de nuevo.",
+    );
   }
 }
