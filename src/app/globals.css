@@ -689,8 +689,48 @@ textarea:focus {
 .detail-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
   gap: 8px;
+}
+.live-sync-pill {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #264768;
+  border-radius: 999px;
+  background: #091522;
+  padding: 6px 11px;
+  color: #9fb2c8;
+  font-size: 0.72rem;
+  font-weight: 780;
+}
+.live-sync-pill > span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #7890aa;
+  box-shadow: 0 0 0 4px #7890aa1c;
+}
+.live-sync-pill.is-live {
+  border-color: #27735b;
+  background: #071c18;
+  color: #85f0be;
+}
+.live-sync-pill.is-live > span {
+  background: var(--success);
+  box-shadow: 0 0 0 5px #36e29b1c;
+  animation: pulse 1.7s infinite;
+}
+.live-sync-pill.is-connecting > span {
+  background: #f0ba5b;
+  box-shadow: 0 0 0 5px #f0ba5b1a;
+}
+.live-sync-pill.is-offline {
+  border-color: #3a4250;
+  background: #0a0e16;
+  color: #8290a6;
 }
 .detail-grid {
   display: grid;

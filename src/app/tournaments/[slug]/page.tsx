@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/session";
 import { MatchResultForm } from "./match-result-form";
+import { LiveTournamentRefresh } from "./live-tournament-refresh";
 import { resolveByes, updateTournamentStatus } from "./actions";
 
 type TournamentRecord = {
@@ -226,6 +227,7 @@ export default async function TournamentPage({
             </p>
           </div>
           <div className="detail-actions">
+            <LiveTournamentRefresh tournamentId={tournament.id} />
             {canShare ? (
               <ShareButton title={`${tournament.name} · BracketForge`} />
             ) : null}
