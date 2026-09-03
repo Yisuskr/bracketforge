@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { ShareButton } from "@/components/share-button";
 import { SiteHeader } from "@/components/site-header";
@@ -52,6 +53,8 @@ type MatchRecord = {
   next_match_for_winner_id: string | null;
 };
 
+type LifecycleIntent = "mark-ready" | "start" | "pause" | "resume" | "draft";
+
 const tournamentStatusLabels: Record<string, string> = {
   draft: "Borrador",
   ready: "Listo",
@@ -77,6 +80,29 @@ const visibilityLabels: Record<string, string> = {
   private: "Privado",
 };
 
+const lifecycleSteps = [
+  {
+    key: "draft",
+    label: "Borrador",
+    note: "Participantes y reglas",
+  },
+  {
+    key: "ready",
+    label: "Listo",
+    note: "Revision final",
+  },
+  {
+    key: "active",
+    label: "En vivo",
+    note: "Resultados abiertos",
+  },
+  {
+    key: "completed",
+    label: "Final",
+    note: "Campeon definido",
+  },
+];
+
 function labelFor(labels: Record<string, string>, value: string) {
   return labels[value] ?? value;
 }
@@ -87,6 +113,101 @@ function formatMatchNumber(matchNumber: number) {
 
 function scoreText(score: number | null) {
   return score === null ? "-" : score.toString();
+}
+
+function completionPercent(completed: number, total: number) {
+  if (!total) return 0;
+  return Math.round((completed / total) * 100);
+}
+
+function lifecyclePosition(status: string) {
+  if (status === "draft") return 0;
+  if (status === "ready") return 1;
+  if (status === "active" || status === "paused") return 2;
+  return 3;
+}
+
+function eventInitials(name: string) {
+  const initials = playerInitials(name);
+  return initials ? initials.slice(0, 2) : "BF";
+}
+
+function phaseLabel(
+  status: string,
+  champion: ParticipantRecord | null,
+  currentRoundName: string | null,
+) {
+  if (champion) return "Final cerrada";
+  if (status === "active") return currentRoundName ?? "En juego";
+  if (status === "paused") return "Pausado";
+  return labelFor(tournamentStatusLabels, status);
+}
+
+function organizerGuidance({
+  championName,
+  completedMatchCount,
+  matchCount,
+  playableMatchCount,
+  status,
+  unresolvedByeCount,
+}: {
+  championName: string | null;
+  completedMatchCount: number;
+  matchCount: number;
+  playableMatchCount: number;
+  status: string;
+  unresolvedByeCount: number;
+}) {
+  if (status === "draft") {
+    return {
+      body:
+        unresolvedByeCount > 0
+          ? "Hay byes listos para resolver antes de abrir el torneo."
+          : "Revisa el draft, ajusta participantes si hace falta y dejalo listo para competir.",
+      headline: "Prepara la salida",
+      next: "Siguiente: revisar y abrir la arena.",
+    };
+  }
+
+  if (status === "ready") {
+    return {
+      body: `${playableMatchCount} partidos pueden jugarse cuando inicies.`,
+      headline: "Todo listo para iniciar",
+      next: "Siguiente: iniciar el torneo.",
+    };
+  }
+
+  if (status === "active") {
+    return {
+      body: `${completedMatchCount} de ${matchCount} partidos cerrados. Guarda resultados desde cada partido listo.`,
+      headline: "Torneo en marcha",
+      next: "Siguiente: completar los partidos abiertos.",
+    };
+  }
+
+  if (status === "paused") {
+    return {
+      body: "Los resultados estan congelados hasta que reanudes.",
+      headline: "Torneo pausado",
+      next: "Siguiente: reanudar cuando toque.",
+    };
+  }
+
+  if (status === "completed") {
+    return {
+      body: championName
+        ? `${championName} quedo como campeon del torneo.`
+        : "El bracket esta cerrado.",
+      headline: "Torneo completado",
+      next: "Siguiente: compartir resultados o archivar mas adelante.",
+    };
+  }
+
+  return {
+    body: "Mantente atento al estado antes de permitir nuevos resultados.",
+    headline: labelFor(tournamentStatusLabels, status),
+    next: "Siguiente: revisar el bracket.",
+  };
 }
 
 function playerInitials(name: string) {
@@ -117,7 +238,7 @@ function playerLine(
   }
 
   return (
-    <div className={`result-player${isWinner ? "is-winner" : ""}`}>
+    <div className={`result-player${isWinner ? " is-winner" : ""}`}>
       <span className="result-player-seed">{participant.seed}</span>
       <span className="result-player-avatar">
         {playerInitials(participant.display_name)}
@@ -128,6 +249,196 @@ function playerLine(
       </span>
       <b className="result-player-score">{scoreText(score)}</b>
     </div>
+  );
+}
+
+function PublicArenaHeader({
+  canShare,
+  tournamentId,
+  tournamentName,
+}: {
+  canShare: boolean;
+  tournamentId: string;
+  tournamentName: string;
+}) {
+  return (
+    <header className="public-arena-topbar">
+      <div className="container">
+        <Link className="public-brand" href="/">
+          <span>B</span>
+          BracketForge
+        </Link>
+        <div className="public-arena-topbar-actions">
+          <LiveTournamentRefresh tournamentId={tournamentId} />
+          {canShare ? (
+            <ShareButton title={`${tournamentName} · BracketForge`} />
+          ) : null}
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function StatusActionForm({
+  children,
+  intent,
+  slug,
+  variant = "ghost",
+}: {
+  children: ReactNode;
+  intent: LifecycleIntent;
+  slug: string;
+  variant?: "primary" | "ghost";
+}) {
+  return (
+    <form action={updateTournamentStatus} className="inline-form">
+      <input name="slug" type="hidden" value={slug} />
+      <button
+        className={variant === "primary" ? "button" : "button ghost"}
+        name="intent"
+        value={intent}
+      >
+        {children}
+      </button>
+    </form>
+  );
+}
+
+function OrganizerConsole({
+  championName,
+  completedMatchCount,
+  completion,
+  matchCount,
+  playableMatchCount,
+  slug,
+  status,
+  unresolvedByeCount,
+}: {
+  championName: string | null;
+  completedMatchCount: number;
+  completion: number;
+  matchCount: number;
+  playableMatchCount: number;
+  slug: string;
+  status: string;
+  unresolvedByeCount: number;
+}) {
+  const position = lifecyclePosition(status);
+  const guidance = organizerGuidance({
+    championName,
+    completedMatchCount,
+    matchCount,
+    playableMatchCount,
+    status,
+    unresolvedByeCount,
+  });
+  const canReturnToDraft = status !== "draft" && completedMatchCount === 0;
+  const hasActions =
+    status === "draft" ||
+    status === "ready" ||
+    status === "active" ||
+    status === "paused" ||
+    canReturnToDraft ||
+    unresolvedByeCount > 0;
+
+  return (
+    <section className="organizer-console">
+      <div className="organizer-console-main">
+        <p className="eyebrow">Cabina del organizador</p>
+        <h2>{guidance.headline}</h2>
+        <p>{guidance.body}</p>
+        <div className="organizer-meter">
+          <div>
+            <span>Avance</span>
+            <b>{completion}%</b>
+          </div>
+          <div className="organizer-meter-track">
+            <span style={{ width: `${completion}%` }} />
+          </div>
+          <small>{guidance.next}</small>
+        </div>
+      </div>
+
+      <ol className="lifecycle-track" aria-label="Estado del torneo">
+        {lifecycleSteps.map((step, index) => {
+          const isCurrent = index === position;
+          const className = [
+            index < position ? "is-done" : "",
+            isCurrent ? "is-current" : "",
+            isCurrent && status === "paused" && step.key === "active"
+              ? "is-paused"
+              : "",
+          ]
+            .filter(Boolean)
+            .join(" ");
+
+          return (
+            <li className={className} key={step.key}>
+              <span>{index + 1}</span>
+              <div>
+                <strong>{step.label}</strong>
+                <small>{step.note}</small>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+
+      <div className="organizer-actions">
+        <div>
+          <strong>Acciones disponibles</strong>
+          <span>{labelFor(tournamentStatusLabels, status)}</span>
+        </div>
+        {hasActions ? (
+          <div className="organizer-action-list">
+            {status === "draft" ? (
+              <>
+                <Link
+                  className="button ghost"
+                  href={`/tournaments/${slug}/edit`}
+                >
+                  Editar draft
+                </Link>
+                <StatusActionForm intent="mark-ready" slug={slug}>
+                  Marcar listo
+                </StatusActionForm>
+                <StatusActionForm intent="start" slug={slug} variant="primary">
+                  Iniciar torneo
+                </StatusActionForm>
+              </>
+            ) : null}
+            {status === "ready" ? (
+              <StatusActionForm intent="start" slug={slug} variant="primary">
+                Iniciar torneo
+              </StatusActionForm>
+            ) : null}
+            {status === "active" ? (
+              <StatusActionForm intent="pause" slug={slug}>
+                Pausar torneo
+              </StatusActionForm>
+            ) : null}
+            {status === "paused" ? (
+              <StatusActionForm intent="resume" slug={slug} variant="primary">
+                Reanudar torneo
+              </StatusActionForm>
+            ) : null}
+            {canReturnToDraft ? (
+              <StatusActionForm intent="draft" slug={slug}>
+                Volver a borrador
+              </StatusActionForm>
+            ) : null}
+            {unresolvedByeCount > 0 ? (
+              <form action={resolveByes} className="inline-form">
+                <input name="slug" type="hidden" value={slug} />
+                <button className="button ghost">Aplicar byes</button>
+              </form>
+            ) : null}
+          </div>
+        ) : (
+          <p>Torneo cerrado.</p>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -208,44 +519,102 @@ export default async function TournamentPage({
   const champion = finalMatch?.winner_id
     ? participantsById.get(finalMatch.winner_id)
     : null;
+  const currentRound =
+    rounds.find((round) =>
+      (matchesByRound.get(round.id) ?? []).some(
+        (match) => match.status !== "completed",
+      ),
+    ) ?? null;
+  const completion = completionPercent(completedMatches.length, matches.length);
+  const readyMatchCount = matches.filter((match) =>
+    ["ready", "in_progress"].includes(match.status),
+  ).length;
   const canRecordResults = tournament.status === "active";
   const canShare = tournament.visibility !== "private";
+  const isSpectatorView = !isOwner;
+  const phase = phaseLabel(
+    tournament.status,
+    champion ?? null,
+    currentRound?.name ?? null,
+  );
 
   return (
     <>
-      <SiteHeader />
-      <main className="page tournament-detail container">
-        <section className="tournament-detail-hero">
+      {isSpectatorView ? (
+        <PublicArenaHeader
+          canShare={canShare}
+          tournamentId={tournament.id}
+          tournamentName={tournament.name}
+        />
+      ) : (
+        <SiteHeader />
+      )}
+      <main
+        className={`page tournament-detail container${
+          isSpectatorView ? " spectator-arena" : ""
+        }`}
+      >
+        <section
+          className={`tournament-detail-hero${
+            isSpectatorView ? " is-public-arena" : ""
+          }`}
+        >
           <div>
             <p className="eyebrow">
-              {champion ? "Campeon decidido" : "Torneo real"}
+              {champion
+                ? "Campeon decidido"
+                : isSpectatorView
+                  ? "Arena publica"
+                  : "Torneo real"}
             </p>
             <h1>{tournament.name}</h1>
             <p>
               {tournament.category || "Sin categoria"} · Eliminacion simple ·
               Mejor de {tournament.best_of}
             </p>
-          </div>
-          <div className="detail-actions">
-            <LiveTournamentRefresh tournamentId={tournament.id} />
-            {canShare ? (
-              <ShareButton title={`${tournament.name} · BracketForge`} />
+            {isSpectatorView ? (
+              <div className="public-arena-tags">
+                <span>{phase}</span>
+                <span>{labelFor(visibilityLabels, tournament.visibility)}</span>
+                <span>{completion}% completado</span>
+              </div>
             ) : null}
-            {isOwner && tournament.status === "draft" ? (
-              <Link className="button ghost" href={`/tournaments/${slug}/edit`}>
-                Editar draft
-              </Link>
-            ) : null}
-            <span className="pill">
-              {labelFor(tournamentStatusLabels, tournament.status)}
-            </span>
-            <span className="pill">
-              {labelFor(visibilityLabels, tournament.visibility)}
-            </span>
           </div>
+          {isSpectatorView ? (
+            <aside className="arena-spotlight" aria-label="Resumen del torneo">
+              <span className="arena-emblem">
+                {eventInitials(tournament.name)}
+              </span>
+              <div>
+                <small>{champion ? "Campeon" : "Estado"}</small>
+                <strong>{champion?.display_name ?? phase}</strong>
+                <span>
+                  {completedMatches.length}/{matches.length} partidos cerrados
+                </span>
+              </div>
+              <div className="arena-spotlight-meter">
+                <span style={{ width: `${completion}%` }} />
+              </div>
+            </aside>
+          ) : (
+            <div className="detail-actions">
+              <LiveTournamentRefresh tournamentId={tournament.id} />
+              {canShare ? (
+                <ShareButton title={`${tournament.name} · BracketForge`} />
+              ) : null}
+              <span className="pill">
+                {labelFor(tournamentStatusLabels, tournament.status)}
+              </span>
+              <span className="pill">
+                {labelFor(visibilityLabels, tournament.visibility)}
+              </span>
+            </div>
+          )}
         </section>
 
-        <section className="stats">
+        <section
+          className={`stats${isSpectatorView ? " spectator-stats" : ""}`}
+        >
           <article>
             <b>{participants.length}</b>
             <span>Participantes</span>
@@ -257,85 +626,77 @@ export default async function TournamentPage({
             <span>Partidos cerrados</span>
           </article>
           <article>
-            <b>{champion?.display_name ?? "Pendiente"}</b>
-            <span>Campeon</span>
+            <b>
+              {isSpectatorView
+                ? `${completion}%`
+                : (champion?.display_name ?? "Pendiente")}
+            </b>
+            <span>{isSpectatorView ? "Avance" : "Campeon"}</span>
           </article>
         </section>
 
         {isOwner ? (
-          <section className="manager-panel">
-            <div>
-              <p className="eyebrow">Control del organizador</p>
-              <h2>Gestiona el ritmo del torneo</h2>
-              <p>
-                Marca el torneo como listo, inicialo cuando toque y guarda cada
-                resultado desde su partido.
-              </p>
+          <OrganizerConsole
+            championName={champion?.display_name ?? null}
+            completedMatchCount={completedMatches.length}
+            completion={completion}
+            matchCount={matches.length}
+            playableMatchCount={playableMatches.length}
+            slug={slug}
+            status={tournament.status}
+            unresolvedByeCount={unresolvedByes.length}
+          />
+        ) : null}
+
+        {isSpectatorView && participants.length ? (
+          <section className="public-roster">
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">Competidores</p>
+                <h2>Participantes</h2>
+              </div>
+              <p>{participants.length} inscritos</p>
             </div>
-            <div className="status-actions">
-              {tournament.status === "draft" ? (
-                <form action={updateTournamentStatus} className="inline-form">
-                  <input name="slug" type="hidden" value={slug} />
-                  <button
-                    className="button ghost"
-                    name="intent"
-                    value="mark-ready"
-                  >
-                    Marcar listo
-                  </button>
-                </form>
-              ) : null}
-              {["draft", "ready", "paused"].includes(tournament.status) ? (
-                <form action={updateTournamentStatus} className="inline-form">
-                  <input name="slug" type="hidden" value={slug} />
-                  <button
-                    className="button"
-                    name="intent"
-                    value={tournament.status === "paused" ? "resume" : "start"}
-                  >
-                    {tournament.status === "paused" ? "Reanudar" : "Iniciar"}
-                  </button>
-                </form>
-              ) : null}
-              {tournament.status === "active" ? (
-                <form action={updateTournamentStatus} className="inline-form">
-                  <input name="slug" type="hidden" value={slug} />
-                  <button className="button ghost" name="intent" value="pause">
-                    Pausar
-                  </button>
-                </form>
-              ) : null}
-              {tournament.status !== "draft" && !completedMatches.length ? (
-                <form action={updateTournamentStatus} className="inline-form">
-                  <input name="slug" type="hidden" value={slug} />
-                  <button className="button ghost" name="intent" value="draft">
-                    Volver a borrador
-                  </button>
-                </form>
-              ) : null}
-              {unresolvedByes.length ? (
-                <form action={resolveByes} className="inline-form">
-                  <input name="slug" type="hidden" value={slug} />
-                  <button className="button ghost">Aplicar byes</button>
-                </form>
-              ) : null}
-            </div>
+            <ol className="public-roster-list">
+              {participants.map((participant) => (
+                <li key={participant.id}>
+                  <span>{participant.seed}</span>
+                  <b>{playerInitials(participant.display_name)}</b>
+                  <strong>{participant.display_name}</strong>
+                </li>
+              ))}
+            </ol>
           </section>
         ) : null}
 
-        <section className="live-results-board">
+        <section
+          className={`live-results-board${
+            isSpectatorView ? " is-spectator" : ""
+          }`}
+        >
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Bracket vivo</p>
-              <h2>Resultados y avance</h2>
+              <p className="eyebrow">
+                {isSpectatorView ? "Marcador publico" : "Bracket vivo"}
+              </p>
+              <h2>
+                {isSpectatorView
+                  ? "Rondas y resultados"
+                  : "Resultados y avance"}
+              </h2>
             </div>
             <p>
-              {playableMatches.length} partidos jugables ·{" "}
-              {unresolvedByes.length} byes pendientes
+              {isSpectatorView
+                ? `${labelFor(tournamentStatusLabels, tournament.status)} · ${readyMatchCount} en cola`
+                : `${playableMatches.length} partidos jugables · ${unresolvedByes.length} byes pendientes`}
             </p>
           </div>
 
-          <div className="round-result-grid">
+          <div
+            className={`round-result-grid${
+              isSpectatorView ? " is-spectator" : ""
+            }`}
+          >
             {rounds.map((round) => (
               <article className="result-round" key={round.id}>
                 <header>
@@ -375,7 +736,9 @@ export default async function TournamentPage({
 
                     return (
                       <article
-                        className={`result-match-card is-${match.status}`}
+                        className={`result-match-card is-${match.status}${
+                          isSpectatorView ? " is-spectator" : ""
+                        }`}
                         key={match.id}
                       >
                         <header>
