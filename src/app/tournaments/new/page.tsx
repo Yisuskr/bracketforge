@@ -14,10 +14,10 @@ export default async function NewTournament() {
       <SiteHeader />
       <main className="page narrow container">
         <p className="eyebrow">Nuevo torneo</p>
-        <h1>Prepara el terreno de juego</h1>
+        <h1>Crea un draft jugable</h1>
         <p className="lede small">
-          Completa los datos básicos. Podrás revisar todo antes de generar el
-          bracket.
+          Define participantes, formato y visibilidad. Después podrás revisar
+          seeds, editar el draft e iniciar el bracket desde tu panel.
         </p>
         <TournamentWizard />
       </main>

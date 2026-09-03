@@ -17,6 +17,8 @@ type TournamentStatus =
   | "archived"
   | "cancelled";
 
+type TournamentVisibility = "public" | "unlisted" | "private";
+
 type MatchStatus =
   "pending" | "ready" | "in_progress" | "completed" | "review" | "void";
 
@@ -25,6 +27,7 @@ type TournamentOwnerRow = {
   owner_id: string;
   slug: string;
   status: TournamentStatus;
+  visibility: TournamentVisibility;
   version: number;
 };
 
@@ -68,6 +71,11 @@ const matchResultSchema = z.object({
 const lifecycleSchema = z.object({
   slug: z.string().trim().min(1),
   intent: z.enum(["mark-ready", "start", "pause", "resume", "draft"]),
+});
+
+const visibilitySchema = z.object({
+  slug: z.string().trim().min(1),
+  visibility: z.enum(["public", "unlisted", "private"]),
 });
 
 const byesSchema = z.object({
@@ -135,7 +143,7 @@ async function getOwnedTournament(
 
   const { data: tournament } = await supabase
     .from("tournaments")
-    .select("id, owner_id, slug, status, version")
+    .select("id, owner_id, slug, status, visibility, version")
     .eq("slug", slug)
     .single<TournamentOwnerRow>();
 
@@ -260,7 +268,7 @@ export async function recordMatchResult(
 
   const { data: tournament } = await supabase
     .from("tournaments")
-    .select("id, owner_id, slug, status, version")
+    .select("id, owner_id, slug, status, visibility, version")
     .eq("id", currentMatch.tournament_id)
     .single<TournamentOwnerRow>();
 
@@ -369,13 +377,28 @@ export async function updateTournamentStatus(formData: FormData) {
   const hasCompleted = matches.some((match) => match.status === "completed");
   let nextStatus: TournamentStatus | null = null;
 
-  if (validated.data.intent === "mark-ready") nextStatus = "ready";
-  if (validated.data.intent === "start") nextStatus = "active";
-  if (validated.data.intent === "resume") nextStatus = "active";
+  if (validated.data.intent === "mark-ready" && tournament.status === "draft") {
+    nextStatus = "ready";
+  }
+  if (
+    validated.data.intent === "start" &&
+    ["draft", "ready"].includes(tournament.status)
+  ) {
+    nextStatus = "active";
+  }
+  if (validated.data.intent === "resume" && tournament.status === "paused") {
+    nextStatus = "active";
+  }
   if (validated.data.intent === "pause" && tournament.status === "active") {
     nextStatus = "paused";
   }
-  if (validated.data.intent === "draft" && !hasCompleted) nextStatus = "draft";
+  if (
+    validated.data.intent === "draft" &&
+    tournament.status !== "draft" &&
+    !hasCompleted
+  ) {
+    nextStatus = "draft";
+  }
 
   if (!nextStatus || nextStatus === tournament.status) return;
 
@@ -391,6 +414,33 @@ export async function updateTournamentStatus(formData: FormData) {
   if (nextStatus === "ready" || nextStatus === "active") {
     await syncPlayableMatches(supabase, tournament.id);
   }
+
+  revalidatePath("/dashboard");
+  revalidatePath(`/tournaments/${tournament.slug}`);
+}
+
+export async function updateTournamentVisibility(formData: FormData) {
+  const validated = visibilitySchema.safeParse({
+    slug: formData.get("slug"),
+    visibility: formData.get("visibility"),
+  });
+
+  if (!validated.success) return;
+
+  const supabase = await createSupabaseServerClient();
+  const tournament = await getOwnedTournament(supabase, validated.data.slug);
+  if (!tournament || tournament.visibility === validated.data.visibility) {
+    return;
+  }
+
+  await supabase
+    .from("tournaments")
+    .update({
+      visibility: validated.data.visibility,
+      updated_at: new Date().toISOString(),
+      version: tournament.version + 1,
+    })
+    .eq("id", tournament.id);
 
   revalidatePath("/dashboard");
   revalidatePath(`/tournaments/${tournament.slug}`);

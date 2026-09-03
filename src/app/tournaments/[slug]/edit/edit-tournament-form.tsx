@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { FormEvent } from "react";
 import { useActionState, useMemo, useState } from "react";
 import {
   deleteDraftTournament,
@@ -55,6 +56,12 @@ export function EditTournamentForm({ initialValues }: EditTournamentFormProps) {
           })),
         )
       : null;
+
+  function confirmDelete(event: FormEvent<HTMLFormElement>) {
+    if (!window.confirm("¿Seguro que quieres borrar este draft?")) {
+      event.preventDefault();
+    }
+  }
 
   return (
     <div className="edit-layout">
@@ -181,7 +188,7 @@ export function EditTournamentForm({ initialValues }: EditTournamentFormProps) {
             acción solo está disponible antes de iniciar la competición.
           </p>
         </div>
-        <form action={deleteDraftTournament}>
+        <form action={deleteDraftTournament} onSubmit={confirmDelete}>
           <input name="slug" type="hidden" value={initialValues.slug} />
           <button className="button danger" type="submit">
             Borrar torneo

@@ -19,9 +19,7 @@ function FieldError({ messages }: { messages?: string[] }) {
 }
 
 export function TournamentWizard() {
-  const [names, setNames] = useState(
-    "Lina Vega\nNoah Silva\nMara Sol\nLeo Cruz",
-  );
+  const [names, setNames] = useState("");
   const [state, formAction, pending] = useActionState(
     createTournament,
     initialState,
@@ -107,9 +105,10 @@ export function TournamentWizard() {
         </label>
         <label className="full">
           Participantes
-          <small>Uno por linea o separados por comas</small>
+          <small>Uno por linea o separados por comas.</small>
           <textarea
             name="participants"
+            placeholder={"Esteban\nMario\nAngel\nManu"}
             value={names}
             onChange={(event) => setNames(event.target.value)}
             rows={6}
@@ -132,7 +131,7 @@ export function TournamentWizard() {
         </div>
       </div>
       <button className="button large" disabled={parsed.length < 2 || pending}>
-        {pending ? "Guardando..." : "Guardar borrador real"}
+        {pending ? "Guardando..." : "Guardar draft"}
       </button>
       {state.message ? (
         <div className={`form-state is-${state.status}`} aria-live="polite">
@@ -143,8 +142,8 @@ export function TournamentWizard() {
         </div>
       ) : (
         <p className="form-note">
-          Para guardar de verdad necesitas Supabase configurado y una sesion
-          iniciada.
+          Se guardará como borrador. Podrás revisarlo, editar seeds y abrirlo
+          desde tu panel.
         </p>
       )}
     </form>
