@@ -3,6 +3,8 @@
 BracketForge is a tournament operations app for creating, running and sharing
 competitive brackets with a polished public arena for spectators.
 
+Live preview: https://bracketforge-app.vercel.app
+
 The project is built with Next.js 16, React 19, TypeScript, Tailwind CSS 4 and
 Supabase. It includes Supabase Auth, PostgreSQL migrations with RLS policies,
 real-time tournament refreshes and a tested single-elimination engine separated
@@ -111,8 +113,12 @@ flowchart LR
 
 ## Deployment
 
-Import the repository into Vercel or another Next.js-compatible platform,
-configure the public variables listed in `.env.example` and deploy from `main`.
+The public preview is deployed on Vercel:
+https://bracketforge-app.vercel.app
+
+For a fresh deployment, import the repository into Vercel or another
+Next.js-compatible platform, configure the public variables listed in
+`.env.example` and deploy from `main`.
 
 Supabase and the hosting provider both have usage limits. Review current limits
 before running high-traffic events.
