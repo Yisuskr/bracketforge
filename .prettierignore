@@ -1,0 +1,10 @@
+node_modules
+.next
+out
+coverage
+.env*
+.gitignore
+.gitattributes
+.prettierignore
+package-lock.json
+*.tsbuildinfo

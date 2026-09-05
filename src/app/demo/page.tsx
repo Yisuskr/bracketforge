@@ -1,16 +1,5 @@
-import Link from "next/link";
-import { DemoBracket } from "@/components/demo-bracket";
-import { SiteHeader } from "@/components/site-header";
-import { ShareButton } from "@/components/share-button";
+import { redirect } from "next/navigation";
 
-export default function Demo() {
-  return <><SiteHeader /><main className="demo-page">
-    <section className="container tournament-hero">
-      <div className="tournament-identity"><div className="event-emblem" aria-hidden="true">CF</div><div><p className="eyebrow">Torneo público · Demo</p><h1>Copa de la Comunidad</h1><p className="tournament-meta"><span>Eliminación simple</span><i />8 competidores<i />Mejor de 3</p></div></div>
-      <div className="tournament-actions"><span className="live-badge"><i /> En directo</span><ShareButton /></div>
-    </section>
-    <section className="container arena-status" aria-label="Estado del torneo"><div><span>Partidos</span><strong>4 <small>/ 7</small></strong></div><div><span>Competidores</span><strong>8</strong></div><div><span>Ronda actual</span><strong>Semifinales</strong></div><div className="status-progress"><span>Progreso del torneo <b>57%</b></span><div><i /></div></div></section>
-    <section className="container bracket-shell"><div className="section-heading"><div><p className="eyebrow">El camino a la victoria</p><h2>Bracket principal</h2></div><p><span className="pulse-dot" /> Actualizado hace unos segundos</p></div><DemoBracket /></section>
-    <section className="container demo-cta"><div><span>¿Preparado para competir?</span><h2>Crea tu propia arena.</h2></div><Link href="/tournaments/new" className="button large">Crear torneo gratis <span>→</span></Link></section>
-  </main></>;
+export default function DemoRedirect() {
+  redirect("/arena");
 }

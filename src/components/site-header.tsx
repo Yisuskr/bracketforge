@@ -16,8 +16,8 @@ export async function SiteHeader() {
           {siteConfig.name}
         </Link>
         <nav className="flex items-center gap-2" aria-label="Principal">
-          <Link className="button ghost" href="/demo">
-            Demo
+          <Link className="button ghost" href="/arena">
+            Arena
           </Link>
           {user ? (
             <>

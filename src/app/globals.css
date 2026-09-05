@@ -16,13 +16,17 @@
   --success: #36e29b;
   --danger: #ff4d6d;
   --radius: 16px;
+  --font-sans-stack:
+    "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono-stack:
+    "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
 
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--ink);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-sans-stack);
+  --font-mono: var(--font-mono-stack);
 }
 
 * {
@@ -39,7 +43,7 @@ body {
     radial-gradient(circle at 50% -10%, #142955 0, transparent 31rem),
     linear-gradient(180deg, #070a11 0, var(--bg) 35rem);
   color: var(--ink);
-  font-family: var(--font-geist-sans), sans-serif;
+  font-family: var(--font-sans-stack);
 }
 body::before {
   position: fixed;
@@ -301,7 +305,7 @@ a:focus-visible {
 }
 .benefits b {
   color: var(--brand-bright);
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-mono-stack);
   font-size: 0.69rem;
   letter-spacing: 0.08em;
 }
@@ -362,7 +366,7 @@ a:focus-visible {
 }
 .dashboard-command span {
   color: #6caeff;
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-mono-stack);
   font-size: 0.68rem;
   font-weight: 820;
   text-transform: uppercase;
@@ -407,7 +411,7 @@ a:focus-visible {
 }
 .stats b {
   color: #d9e9ff;
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-mono-stack);
   font-size: 2rem;
 }
 .stats span {
@@ -533,7 +537,7 @@ a:focus-visible {
   border-radius: 6px;
   background: #152238;
   color: #cfe3ff;
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-mono-stack);
   font-size: 0.66rem;
 }
 .dashboard-grid {
@@ -576,7 +580,7 @@ a:focus-visible {
 .dashboard-card-title strong {
   flex: 0 0 auto;
   color: #7cc0ff;
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-mono-stack);
   font-size: 1.35rem;
 }
 .dashboard-card-metrics {
@@ -600,7 +604,7 @@ a:focus-visible {
   overflow: hidden;
   margin: 5px 0 0;
   color: #dce8f8;
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-mono-stack);
   font-size: 0.82rem;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -716,7 +720,7 @@ textarea:focus {
 }
 .summary strong {
   color: #cfe3ff;
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-mono-stack);
   font-size: 1.5rem;
 }
 .summary span,
@@ -1030,7 +1034,7 @@ textarea:focus {
     0 0 35px #36e29b35,
     inset 0 1px #ffffff2a;
   color: #effff7;
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-mono-stack);
   font-size: 1.2rem;
   font-weight: 900;
 }
@@ -1100,7 +1104,7 @@ textarea:focus {
   border-radius: 6px;
   background: #13284a;
   color: #8fc5ff;
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-mono-stack);
   font-size: 0.68rem;
   font-weight: 800;
 }
@@ -1175,7 +1179,7 @@ textarea:focus {
 }
 .organizer-meter b {
   color: #e7f0ff;
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-mono-stack);
 }
 .organizer-meter-track {
   overflow: hidden;
@@ -1228,7 +1232,7 @@ textarea:focus {
   border: 1px solid #2a3a55;
   border-radius: 8px;
   background: #0a101a;
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-mono-stack);
   font-size: 0.7rem;
   font-weight: 850;
 }
@@ -1384,7 +1388,7 @@ textarea:focus {
 .public-roster-list b {
   display: grid;
   place-items: center;
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-mono-stack);
   font-weight: 850;
 }
 .public-roster-list span {
@@ -1460,7 +1464,7 @@ textarea:focus {
 }
 .public-match-strip span {
   color: #58d6ff;
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-mono-stack);
   font-size: 0.65rem;
   font-weight: 820;
   text-transform: uppercase;
@@ -1515,7 +1519,7 @@ textarea:focus {
   border-radius: 8px;
   background: #0d1c31;
   color: #9fccff;
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-mono-stack);
   font-size: 0.66rem;
   font-weight: 850;
 }
@@ -1536,7 +1540,7 @@ textarea:focus {
 }
 .public-round-list b {
   color: #80f0bd;
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-mono-stack);
   font-size: 0.78rem;
 }
 .live-results-board {
@@ -1565,7 +1569,7 @@ textarea:focus {
 }
 .result-round > header span {
   color: #4d9aff;
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-mono-stack);
   font-size: 0.62rem;
   font-weight: 820;
   letter-spacing: 0.11em;
@@ -1596,7 +1600,7 @@ textarea:focus {
   border-bottom: 1px solid #1d283b;
   padding: 0 12px;
   color: #697993;
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-mono-stack);
   font-size: 0.62rem;
 }
 .result-match-card > header strong {
@@ -1648,7 +1652,7 @@ textarea:focus {
   border-radius: 6px;
   background: #080c14;
   color: #71819c;
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-mono-stack);
   font-size: 0.62rem;
   font-weight: 760;
 }
@@ -1691,7 +1695,7 @@ textarea:focus {
   background: #0b241d;
   padding: 3px 7px;
   color: #71eab4;
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-mono-stack);
   font-size: 0.58rem;
   font-weight: 820;
   line-height: 1;
@@ -1706,7 +1710,7 @@ textarea:focus {
   border: 1px solid transparent;
   border-radius: 8px;
   color: #e4efff;
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-mono-stack);
   font-size: 1.05rem;
   font-weight: 850;
 }
@@ -1768,8 +1772,8 @@ textarea:focus {
   color: #8ff0c4;
 }
 
-/* Tournament demo */
-.demo-page {
+/* Tournament showcase */
+.showcase-page {
   padding-bottom: 80px;
 }
 .tournament-hero {
@@ -1897,7 +1901,7 @@ textarea:focus {
 .arena-status strong {
   margin-top: 5px;
   color: #e4efff;
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-mono-stack);
   font-size: 1.25rem;
 }
 .arena-status strong small {
@@ -2028,7 +2032,7 @@ textarea:focus {
 .view-controls span {
   min-width: 47px;
   color: #748198;
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-mono-stack);
   font-size: 0.67rem;
   text-align: center;
 }
@@ -2071,7 +2075,7 @@ textarea:focus {
 }
 .round-heading > span {
   color: #4d9aff;
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-mono-stack);
   font-size: 0.6rem;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -2160,7 +2164,7 @@ textarea:focus {
   border-bottom: 1px solid #1d283b;
   padding: 0 10px;
   color: #56647a;
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-mono-stack);
   font-size: 0.59rem;
   font-weight: 750;
   letter-spacing: 0.07em;
@@ -2225,7 +2229,7 @@ textarea:focus {
   border-radius: 5px;
   background: #080c14;
   color: #65748c;
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-mono-stack);
   font-size: 0.58rem;
   font-style: normal;
 }
@@ -2251,7 +2255,7 @@ textarea:focus {
 .player b {
   min-width: 17px;
   color: #dce9fa;
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-mono-stack);
   font-size: 0.8rem;
   text-align: right;
 }
@@ -2303,7 +2307,7 @@ textarea:focus {
 .champion-card > span {
   display: block;
   color: #62aaff;
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-mono-stack);
   font-size: 0.59rem;
   font-weight: 850;
   letter-spacing: 0.15em;
@@ -2336,7 +2340,7 @@ textarea:focus {
 .is-compact .champion-card {
   opacity: 0.96;
 }
-.demo-cta {
+.showcase-cta {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2348,13 +2352,13 @@ textarea:focus {
   box-shadow: inset 0 1px #ffffff0a;
   padding: 30px 34px;
 }
-.demo-cta > div > span {
+.showcase-cta > div > span {
   color: #6f7d94;
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
-.demo-cta h2 {
+.showcase-cta h2 {
   margin: 5px 0 0;
   font-size: 1.75rem;
   letter-spacing: -0.04em;
@@ -2541,7 +2545,7 @@ textarea:focus {
   }
   .footer,
   .tournament-hero,
-  .demo-cta {
+  .showcase-cta {
     align-items: flex-start;
     flex-direction: column;
   }
@@ -2585,7 +2589,7 @@ textarea:focus {
   .view-controls {
     align-self: flex-end;
   }
-  .demo-cta .button {
+  .showcase-cta .button {
     width: 100%;
   }
 }

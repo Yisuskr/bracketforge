@@ -1,8 +1,80 @@
 import Link from "next/link";
-import { DemoBracket } from "@/components/demo-bracket";
+import { BracketPreview } from "@/components/bracket-preview";
 import { SiteHeader } from "@/components/site-header";
 import { siteConfig } from "@/config/site";
 
 export default function Home() {
-  return <><SiteHeader /><main><section className="hero container"><div><p className="eyebrow">Organiza · Compite · Domina</p><h1>Forja tu bracket.<br /><span>Conquista la arena.</span></h1><p className="lede">{siteConfig.description} Una experiencia competitiva para comunidades que se toman cada partida en serio.</p><div className="actions"><Link className="button large" href="/tournaments/new">Crear torneo <span>→</span></Link><Link className="button ghost large" href="/demo">Ver torneo en directo</Link></div><p className="microcopy"><span className="pulse-dot" /> Preparado para competir · Sin tarjeta · Gratis para empezar</p></div><div className="hero-card"><div className="live"><span /> ARENA EN DIRECTO</div><h2>Copa de la Comunidad</h2><p>Eliminación simple · 8 competidores</p><DemoBracket compact /></div></section><section className="container benefits"><article><b>01 / CONFIGURA</b><h2>Tu torneo, tus reglas.</h2><p>Añade competidores, semillas y formato con control total desde el primer minuto.</p></article><article><b>02 / COMPITE</b><h2>Cada punto cuenta.</h2><p>Resultados en directo y brackets que avanzan automáticamente sin errores.</p></article><article><b>03 / DOMINA</b><h2>Una final memorable.</h2><p>Comparte una arena visual que convierte cada ronda en un verdadero evento.</p></article></section></main><footer className="container footer"><span>© 2026 {siteConfig.name}</span><span>Privacidad · Términos · Código abierto</span></footer></>;
+  return (
+    <>
+      <SiteHeader />
+      <main>
+        <section className="hero container">
+          <div>
+            <p className="eyebrow">Organiza · Compite · Domina</p>
+            <h1>
+              Forja tu bracket.
+              <br />
+              <span>Conquista la arena.</span>
+            </h1>
+            <p className="lede">
+              {siteConfig.description} Una experiencia competitiva para
+              comunidades que se toman cada partida en serio.
+            </p>
+            <div className="actions">
+              <Link className="button large" href="/tournaments/new">
+                Crear torneo <span>→</span>
+              </Link>
+              <Link className="button ghost large" href="/arena">
+                Ver arena en directo
+              </Link>
+            </div>
+            <p className="microcopy">
+              <span className="pulse-dot" /> Preparado para competir · Sin
+              tarjeta · Gratis para empezar
+            </p>
+          </div>
+
+          <div className="hero-card">
+            <div className="live">
+              <span /> ARENA EN DIRECTO
+            </div>
+            <h2>Copa de la Comunidad</h2>
+            <p>Eliminacion simple · 8 competidores</p>
+            <BracketPreview compact />
+          </div>
+        </section>
+
+        <section className="benefits container">
+          <article>
+            <b>01 / CONFIGURA</b>
+            <h2>Tu torneo, tus reglas.</h2>
+            <p>
+              Añade competidores, semillas y formato con control total desde el
+              primer minuto.
+            </p>
+          </article>
+          <article>
+            <b>02 / COMPITE</b>
+            <h2>Cada punto cuenta.</h2>
+            <p>
+              Resultados en directo y brackets que avanzan automaticamente sin
+              errores.
+            </p>
+          </article>
+          <article>
+            <b>03 / DOMINA</b>
+            <h2>Una final memorable.</h2>
+            <p>
+              Comparte una arena visual que convierte cada ronda en un verdadero
+              evento.
+            </p>
+          </article>
+        </section>
+      </main>
+      <footer className="footer container">
+        <span>© 2026 {siteConfig.name}</span>
+        <span>Producto en beta · Supabase ready</span>
+      </footer>
+    </>
+  );
 }

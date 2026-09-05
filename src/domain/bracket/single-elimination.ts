@@ -15,13 +15,15 @@ export type SingleEliminationBracket = {
 };
 
 export function nextPowerOfTwo(value: number): number {
-  if (!Number.isInteger(value) || value < 1) throw new RangeError("value must be a positive integer");
+  if (!Number.isInteger(value) || value < 1)
+    throw new RangeError("value must be a positive integer");
   return 2 ** Math.ceil(Math.log2(value));
 }
 
 export function seededPositions(size: number): number[] {
   if (size === 1) return [1];
-  if (size < 1 || (size & (size - 1)) !== 0) throw new RangeError("size must be a power of two");
+  if (size < 1 || (size & (size - 1)) !== 0)
+    throw new RangeError("size must be a power of two");
   let positions = [1, 2];
   while (positions.length < size) {
     const nextSize = positions.length * 2;
@@ -30,14 +32,20 @@ export function seededPositions(size: number): number[] {
   return positions;
 }
 
-export function createSingleEliminationBracket(entrants: Entrant[]): SingleEliminationBracket {
-  if (entrants.length < 2) throw new RangeError("at least two entrants are required");
+export function createSingleEliminationBracket(
+  entrants: Entrant[],
+): SingleEliminationBracket {
+  if (entrants.length < 2)
+    throw new RangeError("at least two entrants are required");
   const uniqueIds = new Set(entrants.map(({ id }) => id));
-  if (uniqueIds.size !== entrants.length) throw new Error("entrant ids must be unique");
+  if (uniqueIds.size !== entrants.length)
+    throw new Error("entrant ids must be unique");
   const ordered = [...entrants].sort((a, b) => a.seed - b.seed);
   const size = nextPowerOfTwo(ordered.length);
   const rounds = Math.log2(size);
-  const slots = seededPositions(size).map((seed) => ordered[seed - 1]?.id ?? null);
+  const slots = seededPositions(size).map(
+    (seed) => ordered[seed - 1]?.id ?? null,
+  );
   const matches: BracketMatch[] = [];
   let previousRound: BracketMatch[] = [];
   for (let round = 1; round <= rounds; round += 1) {
@@ -48,9 +56,24 @@ export function createSingleEliminationBracket(entrants: Entrant[]): SingleElimi
         id,
         round,
         position: position + 1,
-        participantOne: round === 1 ? { entrantId: slots[position * 2] } : { entrantId: null, sourceMatchId: previousRound[position * 2].id },
-        participantTwo: round === 1 ? { entrantId: slots[position * 2 + 1] } : { entrantId: null, sourceMatchId: previousRound[position * 2 + 1].id },
-        nextMatchId: round === rounds ? null : `r${round + 1}-m${Math.floor(position / 2) + 1}`,
+        participantOne:
+          round === 1
+            ? { entrantId: slots[position * 2] }
+            : {
+                entrantId: null,
+                sourceMatchId: previousRound[position * 2].id,
+              },
+        participantTwo:
+          round === 1
+            ? { entrantId: slots[position * 2 + 1] }
+            : {
+                entrantId: null,
+                sourceMatchId: previousRound[position * 2 + 1].id,
+              },
+        nextMatchId:
+          round === rounds
+            ? null
+            : `r${round + 1}-m${Math.floor(position / 2) + 1}`,
       };
       return match;
     });

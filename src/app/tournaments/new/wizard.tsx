@@ -108,7 +108,7 @@ export function TournamentWizard() {
           <small>Uno por linea o separados por comas.</small>
           <textarea
             name="participants"
-            placeholder={"Esteban\nMario\nAngel\nManu"}
+            placeholder={"Lina Vega\nNoah Silva\nLeo Cruz\nMara Sol"}
             value={names}
             onChange={(event) => setNames(event.target.value)}
             rows={6}
